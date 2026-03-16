@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二元樹走訪全攻略：含 BFS 與 DFS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .node {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .node-active {
+            stroke-width: 4 !important;
+            filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.7));
+            transform: scale(1.2);
+            transform-origin: center;
+        }
+        .text-active {
+            fill: white !important;
+        }
+        .edge {
+            stroke: #cbd5e1;
+            stroke-width: 2.5;
+            transition: stroke 0.3s;
+        }
+        .traversal-card {
+            transition: all 0.3s;
+        }
+        .card-active {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        <!-- Header -->
+        <div class="bg-slate-800 text-white p-6 text-center">
+            <h1 class="text-3xl font-bold mb-2">二元樹走訪全攻略 (BFS & DFS 進階版)</h1>
+            <p class="text-slate-400">點擊下方按鈕觀看 7 節點滿二元樹的動態走訪過程</p>
+        </div>
+
+        <!-- Section: Interactive Animation -->
+        <div>
+            <div class="bg-slate-100 px-6 py-3 font-bold text-slate-600 flex items-center">
+                <span class="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2 text-xs">GO</span>
+                互動式動態演示
+            </div>
+            
+            <div class="flex flex-col md:flex-row">
+                <!-- Left: Animation Canvas -->
+                <div class="flex-1 p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-200">
+                    <div class="mb-8 flex flex-wrap justify-center gap-3">
+                        <!-- BFS / DFS Buttons -->
+                        <button onclick="startAnimation('bfs')" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-lg transition transform active:scale-95 disabled:opacity-50">BFS 動畫</button>
+                        <button onclick="startAnimation('preorder')" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg transition transform active:scale-95 disabled:opacity-50">DFS (前序)</button>
+                        <span class="w-px h-10 bg-slate-200 mx-1"></span>
+                        <!-- Classic DFS Variations -->
+                        <button onclick="startAnimation('inorder')" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold shadow-lg transition transform active:scale-95 disabled:opacity-50">中序動畫</button>
+                        <button onclick="startAnimation('postorder')" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold shadow-lg transition transform active:scale-95 disabled:opacity-50">後序動畫</button>
+                        <button onclick="resetUI()" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold transition">重設</button>
+                    </div>
+
+                    <div class="relative bg-white p-4 md:p-10 rounded-3xl border border-slate-100 w-full max-w-lg shadow-inner">
+                        <svg viewBox="0 0 300 180" class="w-full h-auto">
+                            <!-- Edges -->
+                            <line id="edge-A-B" x1="150" y1="25" x2="80" y2="75" class="edge" />
+                            <line id="edge-A-C" x1="150" y1="25" x2="220" y2="75" class="edge" />
+                            <line id="edge-B-D" x1="80" y1="75" x2="40" y2="135" class="edge" />
+                            <line id="edge-B-E" x1="80" y1="75" x2="120" y2="135" class="edge" />
+                            <line id="edge-C-F" x1="220" y1="75" x2="180" y2="135" class="edge" />
+                            <line id="edge-C-G" x1="220" y1="75" x2="260" y2="135" class="edge" />
+                            
+                            <!-- Nodes -->
+                            <g id="node-A"><circle cx="150" cy="25" r="16" fill="white" stroke="#3b82f6" stroke-width="2.5" class="node" /><text x="150" y="30" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">A</text></g>
+                            <g id="node-B"><circle cx="80" cy="75" r="16" fill="white" stroke="#3b82f6" stroke-width="2.5" class="node" /><text x="80" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">B</text></g>
+                            <g id="node-C"><circle cx="220" cy="75" r="16" fill="white" stroke="#3b82f6" stroke-width="2.5" class="node" /><text x="220" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">C</text></g>
+                            <g id="node-D"><circle cx="40" cy="135" r="16" fill="white" stroke="#3b82f6" stroke-width="2.5" class="node" /><text x="40" y="140" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">D</text></g>
+                            <g id="node-E"><circle cx="120" cy="135" r="16" fill="white" stroke="#3b82f6" stroke-width="2.5" class="node" /><text x="120" y="140" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">E</text></g>
+                            <g id="node-F"><circle cx="180" cy="135" r="16" fill="white" stroke="#3b82f6" stroke-width="2.5" class="node" /><text x="180" y="140" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">F</text></g>
+                            <g id="node-G"><circle cx="260" cy="135" r="16" fill="white" stroke="#3b82f6" stroke-width="2.5" class="node" /><text x="260" y="140" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">G</text></g>
+                        </svg>
+                        
+                        <div id="status-text" class="mt-4 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">
+                            READY TO START
+                        </div>
+                    </div>
+
+                    <!-- Sequence Display Area -->
+                    <div id="output-seq" class="mt-10 min-h-[48px] flex flex-wrap items-center justify-center gap-2 px-4"></div>
+                </div>
+
+                <!-- Right: Logic Explain -->
+                <div class="w-full md:w-80 p-6 bg-slate-50 space-y-4">
+                    <div id="card-bfs" class="p-4 bg-white border border-slate-200 rounded-xl traversal-card border-l-4 border-l-emerald-500">
+                        <h4 class="font-bold text-emerald-700">BFS (廣度優先)</h4>
+                        <p class="text-[10px] text-slate-500 mb-1">Level-order: 按層走訪</p>
+                        <div class="text-[10px] font-mono bg-emerald-50 p-1 rounded">A, B, C, D, E, F, G</div>
+                    </div>
+                    <div id="card-preorder" class="p-4 bg-white border border-slate-200 rounded-xl traversal-card border-l-4 border-l-blue-500">
+                        <h4 class="font-bold text-blue-700">DFS (前序)</h4>
+                        <p class="text-[10px] text-slate-500 mb-1">Root-L-R: 探底優先</p>
+                        <div class="text-[10px] font-mono bg-blue-50 p-1 rounded">A, B, D, E, C, F, G</div>
+                    </div>
+                    <div id="card-inorder" class="p-4 bg-white border border-slate-200 rounded-xl traversal-card border-l-4 border-l-amber-500">
+                        <h4 class="font-bold text-amber-600">中序 Inorder</h4>
+                        <p class="text-[10px] text-slate-500 mb-1">L-Root-R: 排序常用</p>
+                        <div class="text-[10px] font-mono bg-amber-50 p-1 rounded">D, B, E, A, F, C, G</div>
+                    </div>
+                    <div id="card-postorder" class="p-4 bg-white border border-slate-200 rounded-xl traversal-card border-l-4 border-l-purple-500">
+                        <h4 class="font-bold text-purple-700">後序 Postorder</h4>
+                        <p class="text-[10px] text-slate-500 mb-1">L-R-Root: 空間釋放</p>
+                        <div class="text-[10px] font-mono bg-purple-50 p-1 rounded">D, E, B, F, G, C, A</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 p-4 text-slate-400 text-xs text-center border-t border-slate-800 italic">
+            BFS 使用 Queue (FIFO) 實作；DFS 使用 Stack (LIFO) 或遞迴實作。
+        </div>
+    </div>
+
+    <script>
+        const sequences = {
+            bfs: ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+            preorder: ['A', 'B', 'D', 'E', 'C', 'F', 'G'],
+            inorder: ['D', 'B', 'E', 'A', 'F', 'C', 'G'],
+            postorder: ['D', 'E', 'B', 'F', 'G', 'C', 'A']
+        };
+
+        const colors = {
+            bfs: '#10b981',
+            preorder: '#3b82f6',
+            inorder: '#f59e0b',
+            postorder: '#9333ea'
+        };
+
+        let isAnimating = false;
+
+        async function startAnimation(type) {
+            if (isAnimating) return;
+            isAnimating = true;
+
+            resetUI();
+            const seq = sequences[type];
+            const activeColor = colors[type];
+            const outputDiv = document.getElementById('output-seq');
+            const statusText = document.getElementById('status-text');
+            
+            statusText.innerText = `正在播放：${type === 'bfs' ? '廣度優先 (BFS)' : '深度優先 ('+type.toUpperCase()+')'}`;
+            statusText.style.color = activeColor;
+            
+            const cardId = type === 'bfs' ? 'card-bfs' : `card-${type}`;
+            document.getElementById(cardId).classList.add('card-active');
+            
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(b => b.disabled = true);
+
+            for (let i = 0; i < seq.length; i++) {
+                const nodeChar = seq[i];
+                const nodeGroup = document.getElementById(`node-${nodeChar}`);
+                const circle = nodeGroup.querySelector('circle');
+                const text = nodeGroup.querySelector('text');
+
+                circle.style.fill = activeColor;
+                circle.style.stroke = activeColor;
+                circle.classList.add('node-active');
+                text.classList.add('text-active');
+
+                const badge = document.createElement('span');
+                badge.className = "w-9 h-9 rounded-lg text-white flex items-center justify-center font-bold shadow-md transform transition-all scale-0";
+                badge.style.backgroundColor = activeColor;
+                badge.innerText = nodeChar;
+                outputDiv.appendChild(badge);
+                
+                setTimeout(() => badge.classList.remove('scale-0'), 50);
+                await new Promise(r => setTimeout(r, 800));
+            }
+
+            statusText.innerText = "播放完畢";
+            isAnimating = false;
+            buttons.forEach(b => b.disabled = false);
+        }
+
+        function resetUI() {
+            isAnimating = false;
+            document.querySelectorAll('.node').forEach(c => {
+                c.classList.remove('node-active');
+                c.style.fill = 'white';
+                c.style.stroke = '#3b82f6';
+            });
+            document.querySelectorAll('text').forEach(t => t.classList.remove('text-active'));
+            document.querySelectorAll('.traversal-card').forEach(c => c.classList.remove('card-active'));
+            document.getElementById('output-seq').innerHTML = '';
+            document.getElementById('status-text').innerText = 'READY TO START';
+            document.getElementById('status-text').style.color = '#94a3b8';
+            document.querySelectorAll('button').forEach(b => b.disabled = false);
+        }
+    </script>
+</body>
+</html>
